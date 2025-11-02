@@ -213,6 +213,12 @@ def random_piece():
     shape = random.choice(list(PIECES.keys()))
     return Piece(shape)
 
+def get_ghost_y(grid, piece):
+    y = piece.y
+    while valid_position(grid, piece, x_off=piece.x, y_off=y+1):
+        y += 1
+    return y
+
 # ----------------------
 # DIBUJO tablero y panel
 # ----------------------
@@ -231,6 +237,13 @@ def draw_board(frame, grid, current_piece=None):
             else:
                 cv2.rectangle(frame, (x,y), (x+CELL, y+CELL), (28,28,28), 1)
     if current_piece is not None:
+        gy = get_ghost_y(grid, current_piece)
+        for (xcell,ycell) in current_piece.cells(y_off=gy):
+            if ycell >= 0:
+                x = board_x + xcell*CELL
+                y = board_y + ycell*CELL
+                cv2.rectangle(frame,(x+3,y+3),(x+CELL-3,y+CELL-3),
+                              tuple(int(c*0.4) for c in current_piece.color),1)
         for (xcell, ycell) in current_piece.cells():
             if ycell < 0:
                 continue
@@ -280,6 +293,7 @@ def run_tetris():
     start_time = time.time()
     last_drop = time.time()
     game_over = False
+    game_over_time = None
 
     last_detected = None
     input_released = True
@@ -354,18 +368,19 @@ def run_tetris():
             if k == ord('w') or k == 82:
                 action = 'rotate'
             if k == ord('s') or k == 84:
-                if valid_position(grid, current, x_off=current.x, y_off=current.y+1):
-                    current.y += 1
-                else:
-                    blocks, lines = lock_piece(grid, current)
-                    score += blocks
-                    score += 100 * lines
-                    current = next_piece
-                    next_piece = random_piece()
-                    swap_used = False
-                    if not valid_position(grid, current, x_off=current.x, y_off=current.y):
-                        game_over = True
-                last_drop = time.time()
+                if not game_over:
+                    if valid_position(grid, current, x_off=current.x, y_off=current.y+1):
+                        current.y += 1
+                    else:
+                        blocks, lines = lock_piece(grid, current)
+                        score += blocks
+                        score += 100 * lines
+                        current = next_piece
+                        next_piece = random_piece()
+                        swap_used = False
+                        if not valid_position(grid, current, x_off=current.x, y_off=current.y):
+                            game_over = True
+                    last_drop = time.time()
             if k == ord(' '):
                 action = 'swap'
 
@@ -402,19 +417,21 @@ def run_tetris():
                     current.set_rotation(0)
                     swap_used = True
 
-        if not game_over and (tnow - last_drop) >= GRAVITY_INTERVAL:
-            if valid_position(grid, current, x_off=current.x, y_off=current.y+1):
-                current.y += 1
-            else:
-                blocks, lines = lock_piece(grid, current)
-                score += blocks
-                score += 100 * lines
-                current = next_piece
-                next_piece = random_piece()
-                swap_used = False
-                if not valid_position(grid, current, x_off=current.x, y_off=current.y):
-                    game_over = True
-            last_drop = tnow
+        if not game_over:
+            if (tnow - last_drop) >= GRAVITY_INTERVAL:
+                if valid_position(grid, current, x_off=current.x, y_off=current.y+1):
+                    current.y += 1
+                else:
+                    blocks, lines = lock_piece(grid, current)
+                    score += blocks
+                    score += 100 * lines
+                    current = next_piece
+                    next_piece = random_piece()
+                    swap_used = False
+                    if not valid_position(grid, current, x_off=current.x, y_off=current.y):
+                        game_over = True
+                        start_time = tnow - elapsed
+                last_drop = tnow
 
         draw_board(frame, grid, current)
         panel_x = COLS*CELL + 36
@@ -431,12 +448,12 @@ def run_tetris():
             draw_piece_preview(frame, hold_piece, panel_x+12, 270, title="Stored")
         else:
             draw_text(frame, "(vacío)", panel_x+12, 320, 0.7, (190,190,190))
-        draw_text(frame, "Controles por COLOR:", panel_x+12, 360, 0.7, (210,210,210))
-        draw_text(frame, "Rojo  -> Derecha", panel_x+12, 395, 0.62, (0,0,180))
-        draw_text(frame, "Verde -> Izquierda", panel_x+12, 420, 0.62, (0,160,0))
-        draw_text(frame, "Amarillo -> Girar", panel_x+12, 445, 0.62, (0,160,160))
-        draw_text(frame, "Azul -> Cambiar", panel_x+12, 470, 0.62, (160,0,0))
-        draw_text(frame, "Teclado: W/A/S/D, SPACE", panel_x+12, 503, 0.55, (200,200,200))
+        draw_text(frame, "Controles por COLOR:", panel_x+12, 410, 0.7, (210,210,210))
+        draw_text(frame, "Rojo  -> Derecha", panel_x+12, 450, 0.62, (0,0,180))
+        draw_text(frame, "Verde -> Izquierda", panel_x+12, 475, 0.62, (0,160,0))
+        draw_text(frame, "Amarillo -> Girar", panel_x+12, 500, 0.62, (0,160,160))
+        draw_text(frame, "Azul -> Cambiar", panel_x+12, 525, 0.62, (160,0,0))
+        draw_text(frame, "Teclado: W/A/S/D, SPACE", panel_x+12, 560, 0.55, (200,200,200))
 
         if game_over:
             overlay = frame.copy()
