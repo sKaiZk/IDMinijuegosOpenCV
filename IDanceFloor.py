@@ -8,10 +8,10 @@ cap = cv2.VideoCapture(0)
 
 # --- RANGOS HSV DE COLOR (para control del jugador) ---
 color_ranges = {
-    "red":   [(0, 100, 100), (10, 255, 255)],  
-    "green": [(45, 50, 50), (75, 255, 255)],   
-    "blue":  [(100, 50, 50), (130, 255, 255)], 
-    "yellow": [(20, 100, 100), (30, 255, 255)] 
+    "red":   [(0, 100, 100), (10, 255, 255)],
+    "green": [(45, 50, 50), (75, 255, 255)],
+    "blue":  [(100, 50, 50), (130, 255, 255)],
+    "yellow": [(20, 100, 100), (30, 255, 255)]
 }
 
 # --- COLORES DISPONIBLES DEL JUEGO ---
@@ -27,10 +27,10 @@ colors_list = list(color_map.keys())
 
 # --- DIMENSIONES DEL TABLERO ---
 grid_size = 10
-cell_size = 50
-margin = 60
-top_offset = 150
-height = grid_size * cell_size + top_offset + 50
+cell_size = 60  # un poco más grande
+margin = 80
+top_offset = 180
+height = grid_size * cell_size + top_offset + 80
 width = grid_size * cell_size + margin * 2
 
 # --- VARIABLES DEL JUEGO ---
@@ -38,10 +38,10 @@ score = 0
 grid = np.random.choice(colors_list, (grid_size, grid_size))
 target_color = random.choice(colors_list)
 round_start = time.time()
-round_duration = 10  # depende de la dificultad
+round_duration = 10
 show_phase = True
 game_over = False
-game_result = None  # 'win' o 'lose'
+game_result = None
 difficulty_selected = False
 difficulty = "facil"
 
@@ -49,6 +49,11 @@ difficulty = "facil"
 player_pos = [grid_size // 2, grid_size // 2]
 move_delay = 0.4
 last_move = time.time()
+
+# --- PARTICULAS DE FONDO ---
+num_particles = 60
+particles = np.random.randint(0, [width, height], (num_particles, 2))
+particle_speeds = np.random.randint(1, 4, num_particles)
 
 # --- FUNCIONES ---
 def detectar_color(frame):
@@ -61,12 +66,12 @@ def detectar_color(frame):
 
 def seleccionar_dificultad():
     global round_duration, difficulty_selected, difficulty
-    frame = np.zeros((400, 700, 3), dtype=np.uint8)
-    cv2.putText(frame, "Selecciona dificultad:", (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
-    cv2.putText(frame, "[F] Facil (10s)", (200, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
-    cv2.putText(frame, "[N] Normal (7s)", (200, 230), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,255), 2)
-    cv2.putText(frame, "[D] Dificil (5s)", (200, 280), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
-    cv2.putText(frame, "Presiona la tecla correspondiente", (150, 340), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200,200,200), 2)
+    frame = np.zeros((500, 800, 3), dtype=np.uint8)
+    cv2.putText(frame, "Selecciona dificultad:", (200, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+    cv2.putText(frame, "[F] Facil (10s)", (250, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
+    cv2.putText(frame, "[N] Normal (7s)", (250, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,255), 2)
+    cv2.putText(frame, "[D] Dificil (5s)", (250, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
+    cv2.putText(frame, "Presiona la tecla correspondiente", (150, 380), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200,200,200), 2)
     cv2.imshow("Color Dance - OpenCV", frame)
     
     key = cv2.waitKey(1) & 0xFF
@@ -84,16 +89,34 @@ def seleccionar_dificultad():
         difficulty_selected = True
 
 def mostrar_pantalla_final(resultado):
-    frame = np.zeros((400, 700, 3), dtype=np.uint8)
+    frame = np.zeros((500, 800, 3), dtype=np.uint8)
     if resultado == "win":
-        cv2.putText(frame, "¡VICTORIA!", (180, 180), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 4)
-        cv2.putText(frame, "Has ganado el Color Dance :)", (100, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255,255,255), 2)
+        cv2.putText(frame, "¡VICTORIA!", (220, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 4)
+        cv2.putText(frame, "Has ganado el Color Dance :)", (150, 270), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255,255,255), 2)
     else:
-        cv2.putText(frame, "DERROTA", (220, 180), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)
-        cv2.putText(frame, "No llegaste al color a tiempo", (120, 250), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255,255,255), 2)
+        cv2.putText(frame, "DERROTA", (270, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)
+        cv2.putText(frame, "No llegaste al color a tiempo", (160, 270), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255,255,255), 2)
     
-    cv2.putText(frame, "Presiona [R] para reiniciar o [Q] para salir", (80, 320), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200,200,200), 2)
+    cv2.putText(frame, "Presiona [R] para reiniciar o [Q] para salir", (130, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200,200,200), 2)
     cv2.imshow("Color Dance - OpenCV", frame)
+
+def fondo_animado(frame, t):
+    """Crea un degradado dinámico y partículas."""
+    h, w = frame.shape[:2]
+    for y in range(h):
+        r = int(80 + 80 * np.sin(y/80 + t))
+        g = int(60 + 120 * np.sin(y/60 + t/2))
+        b = int(100 + 100 * np.sin(y/100 + t/3))
+        cv2.line(frame, (0, y), (w, y), (b, g, r), 1)
+
+    # Partículas flotando
+    for i in range(num_particles):
+        x, y = particles[i]
+        cv2.circle(frame, (x, y), 2, (255, 255, 255), -1)
+        particles[i, 1] += particle_speeds[i]
+        if particles[i, 1] > h:
+            particles[i, 1] = 0
+            particles[i, 0] = random.randint(0, w)
 
 # --- BUCLE PRINCIPAL ---
 while True:
@@ -112,7 +135,6 @@ while True:
         mostrar_pantalla_final(game_result)
         key = cv2.waitKey(30) & 0xFF
         if key == ord('r'):
-            # Reiniciar
             score = 0
             player_pos = [grid_size // 2, grid_size // 2]
             grid = np.random.choice(colors_list, (grid_size, grid_size))
@@ -126,7 +148,7 @@ while True:
             break
         continue
 
-    # Detección de color para movimiento
+    # Detección de color
     color_detectado = detectar_color(frame_cam)
 
     if (time.time() - last_move > move_delay):
@@ -147,7 +169,6 @@ while True:
     elapsed = time.time() - round_start
     if elapsed > round_duration:
         if not show_phase:
-            # Si no estaba en color correcto → derrota
             current_color = grid[player_pos[0], player_pos[1]]
             if current_color != target_color:
                 game_over = True
@@ -159,13 +180,16 @@ while True:
             grid = np.random.choice(colors_list, (grid_size, grid_size))
             target_color = random.choice(colors_list)
 
-    # Crear escenario
+    # Fondo animado
     frame = np.zeros((height, width, 3), dtype=np.uint8)
+    fondo_animado(frame, time.time() / 2)
+
+    # HUD
     cv2.putText(frame, f"Dificultad: {difficulty.upper()}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
     cv2.putText(frame, f"Puntuacion: {score}/5", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
     cv2.putText(frame, f"Color objetivo: {target_color.upper()}", (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color_map[target_color], 2)
 
-    # Dibujar tablero
+    # Tablero
     for i in range(grid_size):
         for j in range(grid_size):
             color = grid[i, j]
